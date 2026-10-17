@@ -1,0 +1,3 @@
+cd python
+python -m venv .venv
+pip install web3
