@@ -8,9 +8,16 @@ contract Escrow {
     uint256 public amount;
 
     enum State {
-        AwaitingPayment, AwaitingDelivery, Complete, Disputed, Refunded
+        AwaitingPayment, AwaitingDelivery, Complete, Disputed, Refunded, Cancelled
     }
+
     State public currentState;
+    event Deposited(address indexed buyer, uint256 amount);
+    event DeliveryConfirmed(address indexed seller, uint256 amount);
+    event DisputeRaised(address indexed raisedBy);
+    event DisputeResolved(bool refundedBuyer, uint256 amount);
+    event DealCancelled(address indexed buyer);
+
     modifier onlyBuyer {
         require(msg.sender == buyer, "Only buyer can call this");
         _;
@@ -24,6 +31,10 @@ contract Escrow {
         _;
     }
     constructor (address payable _seller, address _arbitrator) {
+        require(_seller != address(0), "Invalid seller");
+        require(_arbitrator != address(0), "Invalid arbitrator");
+        require(_seller != msg.sender, "Buyer and seller must differ");
+
         buyer = msg.sender;
         seller = _seller;
         arbitrator = _arbitrator;
@@ -33,23 +44,38 @@ contract Escrow {
         require(msg.value > 0, "Deposit amount should be > 0");
         amount = msg.value;
         currentState = State.AwaitingDelivery;
+        emit Deposited(msg.sender, msg.value);
     }
     function confirmDelivery() external inState(State.AwaitingDelivery) onlyBuyer {
         currentState = State.Complete;
-        seller.transfer(amount);
+        uint256 payment = amount;
+        amount = 0;
+        (bool success, ) = seller.call{value: payment}("");
+        require(success, "Seller payment failed");
+        emit DeliveryConfirmed(seller, payment);
     }
-    function raiseDispute() external inState(State.Disputed) {
-        require(msg.sender == buyer || msg.sender == seller, "Not transaction party");
+    function raiseDispute() external inState(State.AwaitingDelivery){
+        require(msg.sender == buyer || msg.sender == seller, "Not a transaction party");
         currentState = State.Disputed;
+        emit DisputeRaised(msg.sender);
     }
     function resolveDispute(bool refundBuyer) external inState(State.Disputed) onlyArbitrator {
+        uint256 payment = amount;
+        amount = 0;
         if (refundBuyer) {
             currentState = State.Refunded;
-            payable(buyer).transfer(amount);
+            (bool success, ) = payable(buyer).call{value: payment}("");
+            require(success, "Buyer refund failed");
         } else {
             currentState = State.Complete;
-            seller.transfer(amount);
+            (bool success, ) = seller.call{value: payment}("");
+            require(success, "Seller payment failed");
         }
+        emit DisputeResolved(refundBuyer, payment);
+    }
+    function cancel() external onlyBuyer inState(State.AwaitingPayment) {
+        currentState = State.Cancelled;
+        emit DealCancelled(msg.sender);
     }
     function getDetails() external view returns (address, address, address, uint256, State) {
         return (buyer, seller, arbitrator, amount, currentState);

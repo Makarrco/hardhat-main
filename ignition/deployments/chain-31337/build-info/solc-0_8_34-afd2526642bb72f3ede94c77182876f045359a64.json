@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-afd2526642bb72f3ede94c77182876f045359a64",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.20.0"
+  },
+  "userSourceNameMap": {
+    "contracts/Escrow.sol": "project/contracts/Escrow.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Escrow.sol": {
+        "content": "// SPDX-License-Identifier: UNLICENSED\r\npragma solidity ^0.8.34;\r\n\r\ncontract Escrow {\r\n    address public buyer;\r\n    address payable public seller;\r\n    address public arbitrator;\r\n    uint256 public amount;\r\n\r\n    enum State {\r\n        AwaitingPayment, AwaitingDelivery, Complete, Disputed, Refunded, Cancelled\r\n    }\r\n\r\n    State public currentState;\r\n    event Deposited(address indexed buyer, uint256 amount);\r\n    event DeliveryConfirmed(address indexed seller, uint256 amount);\r\n    event DisputeRaised(address indexed raisedBy);\r\n    event DisputeResolved(bool refundedBuyer, uint256 amount);\r\n    event DealCancelled(address indexed buyer);\r\n\r\n    modifier onlyBuyer {\r\n        require(msg.sender == buyer, \"Only buyer can call this\");\r\n        _;\r\n    }\r\n    modifier onlyArbitrator {\r\n        require(msg.sender == arbitrator, \"Only arbitrator can call this\");\r\n        _;\r\n    }\r\n    modifier inState(State _state) {\r\n        require(currentState == _state, \"Invalid state for operator\");\r\n        _;\r\n    }\r\n    constructor (address payable _seller, address _arbitrator) {\r\n        require(_seller != address(0), \"Invalid seller\");\r\n        require(_arbitrator != address(0), \"Invalid arbitrator\");\r\n        require(_seller != msg.sender, \"Buyer and seller must differ\");\r\n\r\n        buyer = msg.sender;\r\n        seller = _seller;\r\n        arbitrator = _arbitrator;\r\n        currentState = State.AwaitingPayment;\r\n    }\r\n    function deposit() external payable inState(State.AwaitingPayment) onlyBuyer {\r\n        require(msg.value > 0, \"Deposit amount should be > 0\");\r\n        amount = msg.value;\r\n        currentState = State.AwaitingDelivery;\r\n        emit Deposited(msg.sender, msg.value);\r\n    }\r\n    function confirmDelivery() external inState(State.AwaitingDelivery) onlyBuyer {\r\n        currentState = State.Complete;\r\n        uint256 payment = amount;\r\n        amount = 0;\r\n        (bool success, ) = seller.call{value: payment}(\"\");\r\n        require(success, \"Seller payment failed\");\r\n        emit DeliveryConfirmed(seller, payment);\r\n    }\r\n    function raiseDispute() external inState(State.AwaitingDelivery){\r\n        require(msg.sender == buyer || msg.sender == seller, \"Not a transaction party\");\r\n        currentState = State.Disputed;\r\n        emit DisputeRaised(msg.sender);\r\n    }\r\n    function resolveDispute(bool refundBuyer) external inState(State.Disputed) onlyArbitrator {\r\n        uint256 payment = amount;\r\n        amount = 0;\r\n        if (refundBuyer) {\r\n            currentState = State.Refunded;\r\n            (bool success, ) = payable(buyer).call{value: payment}(\"\");\r\n            require(success, \"Buyer refund failed\");\r\n        } else {\r\n            currentState = State.Complete;\r\n            (bool success, ) = seller.call{value: payment}(\"\");\r\n            require(success, \"Seller payment failed\");\r\n        }\r\n        emit DisputeResolved(refundBuyer, payment);\r\n    }\r\n    function cancel() external onlyBuyer inState(State.AwaitingPayment) {\r\n        currentState = State.Cancelled;\r\n        emit DealCancelled(msg.sender);\r\n    }\r\n    function getDetails() external view returns (address, address, address, uint256, State) {\r\n        return (buyer, seller, arbitrator, amount, currentState);\r\n    }\r\n}   "
+      }
+    }
+  }
+}
