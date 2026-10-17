@@ -29,7 +29,7 @@ contract Escrow {
         arbitrator = _arbitrator;
         currentState = State.AwaitingPayment;
     }
-    function deposit() external payable inState(State.AwaitingDelivery) onlyBuyer {
+    function deposit() external payable inState(State.AwaitingPayment) onlyBuyer {
         require(msg.value > 0, "Deposit amount should be > 0");
         amount = msg.value;
         currentState = State.AwaitingDelivery;
