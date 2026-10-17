@@ -1,14 +1,20 @@
+# Node.js Project Initialization
 npm init -y
-npx hardhat --init
+
+# Hardhat Installation
 npm install --save-dev hardhat
-# Компіляція контрактів
+
+# Create Hardhat Project
+npx hardhat init
+
+# Smart Contract Compilation
 npx hardhat compile
+
+# Run Contract Tests
 npx hardhat test
-# Запуск блокчейну
+
+# Run Local Blockchain Node
 npx hardhat node
 
-# Використання тимчасової HardHad Network
-npx hardhat ignition deploy ignition/modules/Counter.ts
-
-# Деплой в блокчейн
-npx hardhat ignition deploy ignition/modules/Counter.ts --network localhost
+# Deploy Contracts using Hardhat Ignition
+npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost

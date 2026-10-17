@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-7fd5553911601672ed44aa95ab0574736cef51f2",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.20.0"
+  },
+  "userSourceNameMap": {
+    "contracts/Arbitrator.sol": "project/contracts/Arbitrator.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Arbitrator.sol": {
+        "content": "// SPDX-License-Identifier: UNLICENSED\r\npragma solidity ^0.8.34;\r\n\r\ninterface IEscrow {\r\n    function resolveDispute(bool refundBuyer) external;\r\n}\r\n\r\ncontract Arbitrator {\r\n    address public arbitratorOwner;\r\n    modifier onlyAtribator() {\r\n        require(msg.sender == arbitratorOwner, \"Not authorized arbitrator\");\r\n        _;\r\n    }\r\n    constructor() {\r\n        arbitratorOwner = msg.sender;\r\n    }\r\n    function resolve(address escrowAddress, bool refundBuyer) external onlyAtribator {\r\n        IEscrow(escrowAddress).resolveDispute(refundBuyer);\r\n    }\r\n}"
+      }
+    }
+  }
+}
