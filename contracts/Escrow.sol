@@ -2,7 +2,7 @@
 pragma solidity ^0.8.34;
 
 contract Escrow {
-    address public buyer;
+    address payable public buyer;
     address payable public seller;
     address public arbitrator;
     uint256 public amount;
@@ -30,12 +30,13 @@ contract Escrow {
         require(currentState == _state, "Invalid state for operator");
         _;
     }
-    constructor (address payable _seller, address _arbitrator) {
+    constructor (address payable _buyer, address payable _seller, address _arbitrator) {
+        require(_buyer != address(0), "Invalid buyer");
         require(_seller != address(0), "Invalid seller");
         require(_arbitrator != address(0), "Invalid arbitrator");
-        require(_seller != msg.sender, "Buyer and seller must differ");
+        require(_buyer != _seller, "Buyer and seller must differ");
 
-        buyer = msg.sender;
+        buyer = _buyer;
         seller = _seller;
         arbitrator = _arbitrator;
         currentState = State.AwaitingPayment;
@@ -64,7 +65,7 @@ contract Escrow {
         amount = 0;
         if (refundBuyer) {
             currentState = State.Refunded;
-            (bool success, ) = payable(buyer).call{value: payment}("");
+            (bool success, ) = buyer.call{value: payment}("");
             require(success, "Buyer refund failed");
         } else {
             currentState = State.Complete;
