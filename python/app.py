@@ -184,13 +184,8 @@ def refresh_escrows():
         else:
             escrow_var.set("")
 
-        if escrow_var.get():
-            get_selected_escrow()
-            fetch_info()
-        else:
-            global escrow_contract, selected_escrow_address
-            escrow_contract = None
-            selected_escrow_address = None
+        get_selected_escrow() if escrow_var.get() else None
+        fetch_info()
         deal_list_var.set(
             "\n".join(
                 f"{index}: {address}"
