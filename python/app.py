@@ -96,7 +96,8 @@ def check_connection():
         else f"Not connected to {RPC_URL}"
     )
     return connected
-def send_transaction(account, function, value=0, refresh=True):
+
+def send_transaction(account, function, value=0, refresh=True, show_success=True):
     if not check_connection():
         raise RuntimeError("Start the local Hardhat node first.")
     tx = function.build_transaction({
@@ -112,21 +113,20 @@ def send_transaction(account, function, value=0, refresh=True):
         private_key=pk_entry.get().strip(),
     )
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    messagebox.showinfo(
-        "Transaction submitted",
-        f"Transaction hash:\n{tx_hash.hex()}\n\nWaiting for confirmation...",
-    )
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
     if receipt["status"] != 1:
         raise RuntimeError(f"Transaction reverted.\nHash: {tx_hash.hex()}")
     if refresh:
         refresh_escrows()
         fetch_info()
-    messagebox.showinfo(
-        "Success",
-        f"Transaction confirmed.\nBlock: {receipt['blockNumber']}\n"
-        f"Hash: {tx_hash.hex()}",
-    )
+    if show_success:
+        messagebox.showinfo(
+            "Success",
+            f"Transaction confirmed successfully.\n"
+            f"Block: {receipt['blockNumber']}\n"
+            f"Transaction: {tx_hash.hex()}",
+        )
     return receipt
 
 def execute_transaction(function, value=0, refresh=True):
